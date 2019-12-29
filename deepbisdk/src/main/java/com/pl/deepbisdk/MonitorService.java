@@ -75,6 +75,10 @@ public class MonitorService extends Service {
 
         @Override
         public void onActivityStarted(@NonNull Activity activity) {
+            if (Utility.isMyServiceRunning(activity, MonitorService.class)) {
+                startService(activity);
+                return;
+            }
             pageVisible.add(0, activity.getLocalClassName());
             deltaTime = 0;
             fireEvents("page-open");
@@ -164,7 +168,7 @@ public class MonitorService extends Service {
         super.onDestroy();
         stopDataTimer();
         stopAppStatusCountingTimerTask();
-        ((Application) DeepBiManager.getAppContext()).unregisterActivityLifecycleCallbacks(lifecycleCallbacks);
+//        ((Application) DeepBiManager.getAppContext()).unregisterActivityLifecycleCallbacks(lifecycleCallbacks);
 
         deltaTime = 0;
         idleTime = 0;

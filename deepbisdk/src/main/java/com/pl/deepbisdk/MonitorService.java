@@ -295,7 +295,8 @@ public class MonitorService extends Service {
     }
 
     private void sendHit(ArrayList<HitEvent> listSendHit) {
-        Utility.writeFile(listSendHit);
+        // This code just for tester debugging hits data only
+//        Utility.writeFile(listSendHit);
 
         // If not have network
         if (!Utility.hasNetworkConnection(this)) {

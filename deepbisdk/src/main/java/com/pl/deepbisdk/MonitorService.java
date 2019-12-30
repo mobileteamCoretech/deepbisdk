@@ -98,6 +98,9 @@ public class MonitorService extends Service {
                 Log.d(LOG_TAG, "MonitorService 2 ACTION_ACTIVITY_ONDESTROYED");
                 String activityName = intent.getStringExtra(PARAM_ACTIVITY_NAME);
                 pageStack.remove(activityName);
+                if (pageStack.isEmpty()) {
+                    stopSelf();
+                }
             }
         }
     };

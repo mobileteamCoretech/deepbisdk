@@ -3,7 +3,10 @@ package com.pl.deepbisdk;
 import android.app.Activity;
 import android.app.Application;
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.text.TextUtils;
@@ -30,6 +33,12 @@ import java.util.TimerTask;
 
 public class MonitorService extends Service {
     private static final String LOG_TAG = "MonitorService";
+
+    public static final String ACTION_ACTIVITY_ONCREATED = "ACTION_ACTIVITY_ONCREATED";
+    public static final String ACTION_ACTIVITY_ONSTART = "ACTION_ACTIVITY_ONSTART";
+    public static final String ACTION_ACTIVITY_ONSTOP = "ACTION_ACTIVITY_ONSTOP";
+    public static final String ACTION_ACTIVITY_ONDESTROYED = "ACTION_ACTIVITY_ONDESTROYED";
+    public static final String PARAM_ACTIVITY_NAME = "PARAM_ACTIVITY_NAME";
 
     private static final int TIMER_TICK = 4000; // 4 seconds
     private static final long LENGTH_5MB = 5 * 1024 * 1024;
@@ -65,45 +74,31 @@ public class MonitorService extends Service {
     private Timer appStatusCountingTimer;
     private TimerTask appStatusCountingTimerTask;
 
-    Application.ActivityLifecycleCallbacks lifecycleCallbacks = new Application.ActivityLifecycleCallbacks() {
+    BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
-        public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle savedInstanceState) {
-            pageStack.add(0, activity.getLocalClassName());
-        }
+        public void onReceive(Context context, Intent intent) {
+            if (ACTION_ACTIVITY_ONCREATED.equals(intent.getAction())) {
+                Log.d(LOG_TAG, "MonitorService 2 ACTION_ACTIVITY_ONCREATED");
+                String activityName = intent.getStringExtra(PARAM_ACTIVITY_NAME);
+                pageStack.add(0, activityName);
+            } else if (ACTION_ACTIVITY_ONSTART.equals(intent.getAction())) {
+                Log.d(LOG_TAG, "MonitorService 2 ACTION_ACTIVITY_ONSTART");
+                String activityName = intent.getStringExtra(PARAM_ACTIVITY_NAME);
+                pageVisible.add(0, activityName);
+                deltaTime = 0;
+                fireEvents("page-open");
+                startDataTimer();
+                startAppStatusCountingTimerTask();
+            } else if (ACTION_ACTIVITY_ONSTOP.equals(intent.getAction())) {
+                Log.d(LOG_TAG, "MonitorService 2 ACTION_ACTIVITY_ONSTOP");
+                String activityName = intent.getStringExtra(PARAM_ACTIVITY_NAME);
+                pageVisible.remove(activityName);
 
-        @Override
-        public void onActivityStarted(@NonNull Activity activity) {
-            pageVisible.add(0, activity.getLocalClassName());
-            deltaTime = 0;
-            fireEvents("page-open");
-            if (!Utility.isMyServiceRunning(activity, MonitorService.class)) {
-                startService(activity);
-                return;
+            } else if (ACTION_ACTIVITY_ONDESTROYED.equals(intent.getAction())) {
+                Log.d(LOG_TAG, "MonitorService 2 ACTION_ACTIVITY_ONDESTROYED");
+                String activityName = intent.getStringExtra(PARAM_ACTIVITY_NAME);
+                pageStack.remove(activityName);
             }
-            startDataTimer();
-            startAppStatusCountingTimerTask();
-        }
-
-        @Override
-        public void onActivityResumed(@NonNull Activity activity) {
-        }
-
-        @Override
-        public void onActivityPaused(@NonNull Activity activity) {
-        }
-
-        @Override
-        public void onActivityStopped(@NonNull Activity activity) {
-            pageVisible.remove(activity.getLocalClassName());
-        }
-
-        @Override
-        public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) {
-        }
-
-        @Override
-        public void onActivityDestroyed(@NonNull Activity activity) {
-            pageStack.remove(activity.getLocalClassName());
         }
     };
 
@@ -146,15 +141,20 @@ public class MonitorService extends Service {
             pageVisible.add(0, pageOpen1stTime);
             pageStack.add(0, pageOpen1stTime);
             fireEvents("page-open");
-            DeepBiManager.unregisterLifeCycleCallBack();
         }
 
         // Life cycle callback
-        ((Application) DeepBiManager.getAppContext()).registerActivityLifecycleCallbacks(lifecycleCallbacks);
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(ACTION_ACTIVITY_ONCREATED);
+        intentFilter.addAction(ACTION_ACTIVITY_ONSTART);
+        intentFilter.addAction(ACTION_ACTIVITY_ONSTOP);
+        intentFilter.addAction(ACTION_ACTIVITY_ONDESTROYED);
+        registerReceiver(receiver, intentFilter);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+//        ((Application) DeepBiManager.getAppContext()).unregisterActivityLifecycleCallbacks(lifecycleCallbacks);
         startDataTimer();
         startAppStatusCountingTimerTask();
 
@@ -171,6 +171,8 @@ public class MonitorService extends Service {
         deltaTime = 0;
         idleTime = 0;
         activeTime = 0;
+
+        unregisterReceiver(receiver);
     }
 
     private void startDataTimer() {

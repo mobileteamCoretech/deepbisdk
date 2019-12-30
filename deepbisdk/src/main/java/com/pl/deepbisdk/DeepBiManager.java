@@ -3,6 +3,7 @@ package com.pl.deepbisdk;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -17,8 +18,7 @@ import com.pl.deepbisdk.utilities.Utility;
 
 public class DeepBiManager {
     private static final String LOG_TAG = "MonitorService";
-    public static final String PREF_ATTENTION_ACTIVE = "PREF_ATTENTION_ACTIVE";
-    public static final String PREF_ATTENTION_TOTAL = "PREF_ATTENTION_TOTAL";
+
     public static String DEVICE_ID = "";
     public static String INGESTION_KEY;
     public static String SESSION_ID;
@@ -73,11 +73,23 @@ public class DeepBiManager {
             // Call page ping
             Log.d(LOG_TAG, "MonitorService 1 onActivityCreated");
             SCREEN_SIZE_INCH = Utility.getScreenSizeInches(activity);
-            mPerference.edit().putString("PageOpened1stTime", activity.getLocalClassName()).commit();
+
+            Intent i = new Intent(MonitorService.ACTION_ACTIVITY_ONCREATED);
+            i.putExtra(MonitorService.PARAM_ACTIVITY_NAME, activity.getClass().getName());
+            mAppContext.sendBroadcast(i);
         }
 
         @Override
-        public void onActivityStarted(@NonNull Activity activity) { }
+        public void onActivityStarted(@NonNull Activity activity) {
+            if (!Utility.isMyServiceRunning(activity, MonitorService.class)) {
+                mPerference.edit().putString("PageOpened1stTime", activity.getClass().getName()).commit();
+                startCollecting(activity);
+                return;
+            }
+            Intent i = new Intent(MonitorService.ACTION_ACTIVITY_ONSTART);
+            i.putExtra(MonitorService.PARAM_ACTIVITY_NAME, activity.getClass().getName());
+            mAppContext.sendBroadcast(i);
+        }
 
         @Override
         public void onActivityResumed(@NonNull Activity activity) { }
@@ -86,12 +98,20 @@ public class DeepBiManager {
         public void onActivityPaused(@NonNull Activity activity) { }
 
         @Override
-        public void onActivityStopped(@NonNull Activity activity) { }
+        public void onActivityStopped(@NonNull Activity activity) {
+            Intent i = new Intent(MonitorService.ACTION_ACTIVITY_ONSTOP);
+            i.putExtra(MonitorService.PARAM_ACTIVITY_NAME, activity.getClass().getName());
+            mAppContext.sendBroadcast(i);
+        }
 
         @Override
         public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) { }
 
         @Override
-        public void onActivityDestroyed(@NonNull Activity activity) { }
+        public void onActivityDestroyed(@NonNull Activity activity) {
+            Intent i = new Intent(MonitorService.ACTION_ACTIVITY_ONDESTROYED);
+            i.putExtra(MonitorService.PARAM_ACTIVITY_NAME, activity.getClass().getName());
+            mAppContext.sendBroadcast(i);
+        }
     };
 }

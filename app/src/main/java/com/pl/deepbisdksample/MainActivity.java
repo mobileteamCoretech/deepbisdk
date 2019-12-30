@@ -33,7 +33,7 @@ public class MainActivity extends Activity {
                     1000);
         }
 
-        DeepBiManager.startCollecting(this);
+//        DeepBiManager.startCollecting(this);
     }
 
     public void onClick(View v) {

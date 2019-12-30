@@ -80,7 +80,7 @@ public class DeviceInfoDataCollector extends BaseDataCollector {
         hardwarePlatformDevice.setIstablet(DeepBiManager.isTablet());
         hardwarePlatformDevice.setIssmartphone(!DeepBiManager.isTablet());
         hardwarePlatformDevice.setIsmobile(true);
-        hardwarePlatformDevice.setIssmallscreen(false);
+        hardwarePlatformDevice.setIssmallscreen(DeepBiManager.isSmallScreen());
         hardwarePlatform.setDevice(hardwarePlatformDevice);
 
         HitEvent.HardwarePlatformScreen hardwarePlatformScreen = new HitEvent.HardwarePlatformScreen();

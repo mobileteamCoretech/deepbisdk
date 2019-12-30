@@ -3,8 +3,6 @@ package com.pl.deepbisdk;
 import android.app.Activity;
 import android.app.Application;
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -55,8 +53,8 @@ public class MonitorService extends Service {
     private double mNextTick = 0;
     private double mCurrentTick = 0;
 
-    private ArrayList<String> pageVisible = new ArrayList<>();
-    private ArrayList<String> pageStack = new ArrayList<>();
+    private static ArrayList<String> pageVisible = new ArrayList<>();
+    private static ArrayList<String> pageStack = new ArrayList<>();
 
     private Timer dataFiringTimer;
     private TimerTask dataFiringTimerTask;
@@ -75,15 +73,15 @@ public class MonitorService extends Service {
 
         @Override
         public void onActivityStarted(@NonNull Activity activity) {
-            if (Utility.isMyServiceRunning(activity, MonitorService.class)) {
-                startService(activity);
-                return;
-            }
             pageVisible.add(0, activity.getLocalClassName());
             deltaTime = 0;
             fireEvents("page-open");
-            stopDataTimer();
+            if (!Utility.isMyServiceRunning(activity, MonitorService.class)) {
+                startService(activity);
+                return;
+            }
             startDataTimer();
+            startAppStatusCountingTimerTask();
         }
 
         @Override
@@ -108,11 +106,6 @@ public class MonitorService extends Service {
             pageStack.remove(activity.getLocalClassName());
         }
     };
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        return super.onStartCommand(intent, flags, startId);
-    }
 
     @Nullable
     @Override
@@ -158,17 +151,22 @@ public class MonitorService extends Service {
 
         // Life cycle callback
         ((Application) DeepBiManager.getAppContext()).registerActivityLifecycleCallbacks(lifecycleCallbacks);
+    }
 
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
         startDataTimer();
         startAppStatusCountingTimerTask();
+
+        return super.onStartCommand(intent, flags, startId);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        Log.d(LOG_TAG, "DeepBi SDK MonitorService destroy");
         stopDataTimer();
         stopAppStatusCountingTimerTask();
-//        ((Application) DeepBiManager.getAppContext()).unregisterActivityLifecycleCallbacks(lifecycleCallbacks);
 
         deltaTime = 0;
         idleTime = 0;

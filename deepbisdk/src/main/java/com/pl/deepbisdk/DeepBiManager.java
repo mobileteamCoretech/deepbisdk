@@ -9,9 +9,6 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
 import com.pl.deepbisdk.network.ApiClient;
 import com.pl.deepbisdk.utilities.RandomString;
 import com.pl.deepbisdk.utilities.Utility;
@@ -69,7 +66,7 @@ public class DeepBiManager {
     }
     static Application.ActivityLifecycleCallbacks lifecycleCallbacks = new Application.ActivityLifecycleCallbacks() {
         @Override
-        public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle savedInstanceState) {
+        public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
             // Call page ping
             Log.d(LOG_TAG, "MonitorService 1 onActivityCreated");
             SCREEN_SIZE_INCH = Utility.getScreenSizeInches(activity);
@@ -80,7 +77,7 @@ public class DeepBiManager {
         }
 
         @Override
-        public void onActivityStarted(@NonNull Activity activity) {
+        public void onActivityStarted(Activity activity) {
             if (!Utility.isMyServiceRunning(activity, MonitorService.class)) {
                 mPerference.edit().putString("PageOpened1stTime", activity.getClass().getName()).commit();
                 startCollecting(activity);
@@ -92,23 +89,23 @@ public class DeepBiManager {
         }
 
         @Override
-        public void onActivityResumed(@NonNull Activity activity) { }
+        public void onActivityResumed(Activity activity) { }
 
         @Override
-        public void onActivityPaused(@NonNull Activity activity) { }
+        public void onActivityPaused(Activity activity) { }
 
         @Override
-        public void onActivityStopped(@NonNull Activity activity) {
+        public void onActivityStopped(Activity activity) {
             Intent i = new Intent(MonitorService.ACTION_ACTIVITY_ONSTOP);
             i.putExtra(MonitorService.PARAM_ACTIVITY_NAME, activity.getClass().getName());
             mAppContext.sendBroadcast(i);
         }
 
         @Override
-        public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) { }
+        public void onActivitySaveInstanceState(Activity activity, Bundle outState) { }
 
         @Override
-        public void onActivityDestroyed(@NonNull Activity activity) {
+        public void onActivityDestroyed(Activity activity) {
             Intent i = new Intent(MonitorService.ACTION_ACTIVITY_ONDESTROYED);
             i.putExtra(MonitorService.PARAM_ACTIVITY_NAME, activity.getClass().getName());
             mAppContext.sendBroadcast(i);

@@ -12,8 +12,6 @@ import android.os.IBinder;
 import android.text.TextUtils;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.google.gson.Gson;
 import com.pl.deepbisdk.datacollectors.DataCollectorManager;
@@ -105,7 +103,6 @@ public class MonitorService extends Service {
         }
     };
 
-    @Nullable
     @Override
     public IBinder onBind(Intent intent) {
         return null;

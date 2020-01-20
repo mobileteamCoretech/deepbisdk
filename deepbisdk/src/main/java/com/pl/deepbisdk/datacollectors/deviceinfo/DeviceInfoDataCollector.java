@@ -50,7 +50,7 @@ public class DeviceInfoDataCollector extends BaseDataCollector {
 
         // App Info
         HitEvent.App app = new HitEvent.App();
-        app.setName("DeepBi");
+        app.setName(Utility.getApplicationName(DeepBiManager.getAppContext()));
         event.setApp(app);
 
         // UTC offset
@@ -95,8 +95,8 @@ public class DeviceInfoDataCollector extends BaseDataCollector {
         HitEvent.SoftwarePlatform softwarePlatform = new HitEvent.SoftwarePlatform();
         HitEvent.SoftwarePlatformName softwarePlatformName = new HitEvent.SoftwarePlatformName();
         softwarePlatformName.setPlatformname("Android");
-        softwarePlatformName.setPlatformvendor(Build.VERSION.RELEASE);
-        softwarePlatformName.setPlatformversion("Google Inc");
+        softwarePlatformName.setPlatformvendor("Google Inc");
+        softwarePlatformName.setPlatformversion(Build.VERSION.RELEASE);
         softwarePlatform.setName(softwarePlatformName);
         device.setSoftwarplatform(softwarePlatform);
 

@@ -3,6 +3,7 @@ package com.pl.deepbisdk.utilities;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 import android.content.res.Resources;
 import android.graphics.Point;
 import android.net.ConnectivityManager;
@@ -164,5 +165,11 @@ public class Utility {
         double x = Math.pow(mWidthPixels / dm.xdpi, 2);
         double y = Math.pow(mHeightPixels / dm.ydpi, 2);
         return Math.sqrt(x + y);
+    }
+
+    public static String getApplicationName(Context context) {
+        ApplicationInfo applicationInfo = context.getApplicationInfo();
+        int stringId = applicationInfo.labelRes;
+        return stringId == 0 ? applicationInfo.nonLocalizedLabel.toString() : context.getString(stringId);
     }
 }

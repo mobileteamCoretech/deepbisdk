@@ -3,8 +3,15 @@ package com.pl.deepbisdk.queuemanager;
 import com.google.gson.Gson;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
+import com.pl.deepbisdk.BuildConfig;
+import com.pl.deepbisdk.DeepBiManager;
+import com.pl.deepbisdk.localdata.dao.HitsObject;
+import com.pl.deepbisdk.utilities.TimeUtils;
 
 import java.io.Serializable;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.TimeZone;
 
 public class HitEvent implements Serializable {
 
@@ -42,10 +49,10 @@ public class HitEvent implements Serializable {
     @Expose
     private User user;
 
-    public HitEvent() {
+    private HitEvent() {
     }
 
-    public HitEvent(String eventType, String pageTitle) {
+    private HitEvent(String eventType, String pageTitle) {
         event = new Event();
         event.setType(eventType);
         page = new Page();
@@ -116,6 +123,10 @@ public class HitEvent implements Serializable {
         this.user = user;
     }
 
+    public Event getEvent() {
+        return event;
+    }
+
     public String toJsonString() {
         Gson gson = new Gson();
         return gson.toJson(this);
@@ -128,12 +139,36 @@ public class HitEvent implements Serializable {
         @Expose
         private String type;
 
+        @SerializedName("name")
+        @Expose
+        private String name;
+
+        @SerializedName("data")
+        @Expose
+        private String data;
+
         public String getType() {
             return type;
         }
 
         public void setType(String type) {
             this.type = type;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getData() {
+            return data;
+        }
+
+        public void setData(String data) {
+            this.data = data;
         }
     }
 
@@ -582,4 +617,29 @@ public class HitEvent implements Serializable {
         }
     }
 
+    public static HitEvent createHitEvent(String eventType, String pageTitle) {
+        HitEvent event = new HitEvent(eventType, pageTitle);
+        event.setTimemillis(Calendar.getInstance().getTimeInMillis());
+
+        // Time
+        event.setTime(TimeUtils.getTimeISO8601());
+
+        // Session
+        HitEvent.Session session = new HitEvent.Session();
+        session.setId(DeepBiManager.SESSION_ID);
+        event.setSession(session);
+
+        // Sdk
+        HitEvent.Sdk sdk = new HitEvent.Sdk();
+        sdk.setVersion(BuildConfig.VERSION_NAME);
+        event.setSdk(sdk);
+
+        // UTC offset
+        TimeZone tz = TimeZone.getDefault();
+        Date now = new Date();
+        int offsetFromUtc = tz.getOffset(now.getTime()) / 1000 / 60;
+        event.setUtcoffset(offsetFromUtc);
+
+        return event;
+    }
 }

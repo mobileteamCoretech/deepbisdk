@@ -9,9 +9,14 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
 
+import com.pl.deepbisdk.localdata.BusEvent;
 import com.pl.deepbisdk.network.ApiClient;
 import com.pl.deepbisdk.utilities.RandomString;
 import com.pl.deepbisdk.utilities.Utility;
+
+import org.greenrobot.eventbus.EventBus;
+
+import java.util.Map;
 
 public class DeepBiManager {
     private static final String LOG_TAG = "MonitorService";
@@ -22,6 +27,7 @@ public class DeepBiManager {
     public static double SCREEN_SIZE_INCH = 0;
     static Context mAppContext;
     static SharedPreferences mPerference;
+    static Activity currentActivity;
 
     public static void init(Context context, String dataSetKey, String ingestionKey) {
         Log.d("TEST SDK", "Init DeepBi sdk here + dataSetKey=" + dataSetKey + ";ingestionKey=" + ingestionKey);
@@ -60,6 +66,13 @@ public class DeepBiManager {
         return SCREEN_SIZE_INCH < 2.5;
     }
 
+    public static void sendCustomEvent(String eventName, String data) {
+        BusEvent be = new BusEvent(MonitorService.ACTION_CUSTOM_EVENT);
+        be.putData(MonitorService.PARAM_EVENT_NAME, eventName);
+        be.putData(MonitorService.PARAM_EVENT_DATA, data);
+        EventBus.getDefault().post(be);
+    }
+
     public static void unregisterLifeCycleCallBack() {
         ((Application) DeepBiManager.getAppContext()).unregisterActivityLifecycleCallbacks(lifecycleCallbacks);
         mPerference.edit().putString("PageOpened1stTime", "").commit();
@@ -70,10 +83,11 @@ public class DeepBiManager {
             // Call page ping
             Log.d(LOG_TAG, "MonitorService 1 onActivityCreated");
             SCREEN_SIZE_INCH = Utility.getScreenSizeInches(activity);
+            currentActivity = activity;
 
-            Intent i = new Intent(MonitorService.ACTION_ACTIVITY_ONCREATED);
-            i.putExtra(MonitorService.PARAM_ACTIVITY_NAME, activity.getClass().getName());
-            mAppContext.sendBroadcast(i);
+            BusEvent be = new BusEvent(MonitorService.ACTION_ACTIVITY_ONCREATED);
+            be.putData(MonitorService.PARAM_ACTIVITY_NAME, activity.getClass().getName());
+            EventBus.getDefault().post(be);
         }
 
         @Override
@@ -83,9 +97,10 @@ public class DeepBiManager {
                 startCollecting(activity);
                 return;
             }
-            Intent i = new Intent(MonitorService.ACTION_ACTIVITY_ONSTART);
-            i.putExtra(MonitorService.PARAM_ACTIVITY_NAME, activity.getClass().getName());
-            mAppContext.sendBroadcast(i);
+
+            BusEvent be = new BusEvent(MonitorService.ACTION_ACTIVITY_ONSTART);
+            be.putData(MonitorService.PARAM_ACTIVITY_NAME, activity.getClass().getName());
+            EventBus.getDefault().post(be);
         }
 
         @Override
@@ -96,9 +111,9 @@ public class DeepBiManager {
 
         @Override
         public void onActivityStopped(Activity activity) {
-            Intent i = new Intent(MonitorService.ACTION_ACTIVITY_ONSTOP);
-            i.putExtra(MonitorService.PARAM_ACTIVITY_NAME, activity.getClass().getName());
-            mAppContext.sendBroadcast(i);
+            BusEvent be = new BusEvent(MonitorService.ACTION_ACTIVITY_ONSTOP);
+            be.putData(MonitorService.PARAM_ACTIVITY_NAME, activity.getClass().getName());
+            EventBus.getDefault().post(be);
         }
 
         @Override
@@ -106,9 +121,9 @@ public class DeepBiManager {
 
         @Override
         public void onActivityDestroyed(Activity activity) {
-            Intent i = new Intent(MonitorService.ACTION_ACTIVITY_ONDESTROYED);
-            i.putExtra(MonitorService.PARAM_ACTIVITY_NAME, activity.getClass().getName());
-            mAppContext.sendBroadcast(i);
+            BusEvent be = new BusEvent(MonitorService.ACTION_ACTIVITY_ONDESTROYED);
+            be.putData(MonitorService.PARAM_ACTIVITY_NAME, activity.getClass().getName());
+            EventBus.getDefault().post(be);
         }
     };
 }

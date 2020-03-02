@@ -53,6 +53,11 @@ public class MainActivity extends Activity {
                 startActivity(intent);
                 break;
             }
+            case R.id.btn4: {
+                Intent intent = new Intent(this, CustomEventActivity.class);
+                startActivity(intent);
+                break;
+            }
         }
     }
 

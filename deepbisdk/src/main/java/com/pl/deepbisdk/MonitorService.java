@@ -17,12 +17,17 @@ import com.google.gson.Gson;
 import com.pl.deepbisdk.datacollectors.DataCollectorManager;
 import com.pl.deepbisdk.datacollectors.deviceinfo.DeviceInfoDataCollector;
 import com.pl.deepbisdk.datacollectors.geolocation.GeolocationDataCollector;
+import com.pl.deepbisdk.localdata.BusEvent;
 import com.pl.deepbisdk.localdata.DatabaseAccess;
 import com.pl.deepbisdk.localdata.dao.HitsObject;
 import com.pl.deepbisdk.network.NetworkManager;
 import com.pl.deepbisdk.queuemanager.DeepBiQueueManager;
 import com.pl.deepbisdk.queuemanager.HitEvent;
 import com.pl.deepbisdk.utilities.Utility;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -36,7 +41,10 @@ public class MonitorService extends Service {
     public static final String ACTION_ACTIVITY_ONSTART = "ACTION_ACTIVITY_ONSTART";
     public static final String ACTION_ACTIVITY_ONSTOP = "ACTION_ACTIVITY_ONSTOP";
     public static final String ACTION_ACTIVITY_ONDESTROYED = "ACTION_ACTIVITY_ONDESTROYED";
+    public static final String ACTION_CUSTOM_EVENT = "ACTION_CUSTOM_EVENT";
     public static final String PARAM_ACTIVITY_NAME = "PARAM_ACTIVITY_NAME";
+    public static final String PARAM_EVENT_NAME = "PARAM_EVENT_NAME";
+    public static final String PARAM_EVENT_DATA = "PARAM_EVENT_DATA";
 
     private static final int TIMER_TICK = 4000; // 4 seconds
     private static final long LENGTH_5MB = 5 * 1024 * 1024;
@@ -72,36 +80,42 @@ public class MonitorService extends Service {
     private Timer appStatusCountingTimer;
     private TimerTask appStatusCountingTimerTask;
 
-    BroadcastReceiver receiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (ACTION_ACTIVITY_ONCREATED.equals(intent.getAction())) {
-                Log.d(LOG_TAG, "MonitorService 2 ACTION_ACTIVITY_ONCREATED");
-                String activityName = intent.getStringExtra(PARAM_ACTIVITY_NAME);
-                pageStack.add(0, activityName);
-            } else if (ACTION_ACTIVITY_ONSTART.equals(intent.getAction())) {
-                Log.d(LOG_TAG, "MonitorService 2 ACTION_ACTIVITY_ONSTART");
-                String activityName = intent.getStringExtra(PARAM_ACTIVITY_NAME);
-                pageVisible.add(0, activityName);
-                deltaTime = 0;
-                fireEvents("page-open");
-                startDataTimer();
-                startAppStatusCountingTimerTask();
-            } else if (ACTION_ACTIVITY_ONSTOP.equals(intent.getAction())) {
-                Log.d(LOG_TAG, "MonitorService 2 ACTION_ACTIVITY_ONSTOP");
-                String activityName = intent.getStringExtra(PARAM_ACTIVITY_NAME);
-                pageVisible.remove(activityName);
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessageEvent(BusEvent event) {
+        String eventType = event.getEventType();
+        if (ACTION_ACTIVITY_ONCREATED.equals(eventType)) {
+            Log.d(LOG_TAG, "MonitorService 2 ACTION_ACTIVITY_ONCREATED");
+            String activityName = (String) event.getData(PARAM_ACTIVITY_NAME);
+            pageStack.add(0, activityName);
+        } else if (ACTION_ACTIVITY_ONSTART.equals(eventType)) {
+            Log.d(LOG_TAG, "MonitorService 2 ACTION_ACTIVITY_ONSTART");
+            String activityName = (String) event.getData(PARAM_ACTIVITY_NAME);
+            pageVisible.add(0, activityName);
+            deltaTime = 0;
+            fireEvents("page-open");
+            startDataTimer();
+            startAppStatusCountingTimerTask();
+        } else if (ACTION_ACTIVITY_ONSTOP.equals(eventType)) {
+            Log.d(LOG_TAG, "MonitorService 2 ACTION_ACTIVITY_ONSTOP");
+            String activityName = (String) event.getData(PARAM_ACTIVITY_NAME);
+            pageVisible.remove(activityName);
 
-            } else if (ACTION_ACTIVITY_ONDESTROYED.equals(intent.getAction())) {
-                Log.d(LOG_TAG, "MonitorService 2 ACTION_ACTIVITY_ONDESTROYED");
-                String activityName = intent.getStringExtra(PARAM_ACTIVITY_NAME);
-                pageStack.remove(activityName);
-                if (pageStack.isEmpty()) {
-                    stopSelf();
-                }
+        } else if (ACTION_ACTIVITY_ONDESTROYED.equals(eventType)) {
+            Log.d(LOG_TAG, "MonitorService 2 ACTION_ACTIVITY_ONDESTROYED");
+            String activityName = (String) event.getData(PARAM_ACTIVITY_NAME);
+            pageStack.remove(activityName);
+            if (pageStack.isEmpty()) {
+                stopSelf();
             }
+        } else if (ACTION_CUSTOM_EVENT.equals(eventType)) {
+            String eventName = (String) event.getData(PARAM_EVENT_NAME);
+            String eventData = (String) event.getData(PARAM_EVENT_DATA);
+            HitEvent hitEvent = HitEvent.createHitEvent("custom_event", "");
+            hitEvent.getEvent().setName(eventName);
+            hitEvent.getEvent().setData(eventData);
+            mQueueManager.addHitEvent(hitEvent);
         }
-    };
+    }
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -144,12 +158,7 @@ public class MonitorService extends Service {
         }
 
         // Life cycle callback
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(ACTION_ACTIVITY_ONCREATED);
-        intentFilter.addAction(ACTION_ACTIVITY_ONSTART);
-        intentFilter.addAction(ACTION_ACTIVITY_ONSTOP);
-        intentFilter.addAction(ACTION_ACTIVITY_ONDESTROYED);
-        registerReceiver(receiver, intentFilter);
+        EventBus.getDefault().register(this);
     }
 
     @Override
@@ -172,7 +181,7 @@ public class MonitorService extends Service {
         idleTime = 0;
         activeTime = 0;
 
-        unregisterReceiver(receiver);
+        EventBus.getDefault().unregister(this);
     }
 
     private void startDataTimer() {
@@ -252,7 +261,7 @@ public class MonitorService extends Service {
         mDatabaseAccess.clearExpiredHits();
 
         // Collect data
-        HitEvent hitEvent = new HitEvent(eventType, currentPageTitle);
+        HitEvent hitEvent = HitEvent.createHitEvent(eventType, currentPageTitle);
         hitEvent.setTimemillis(Calendar.getInstance().getTimeInMillis());
         mDataCollectorManager.putData(hitEvent);
 
@@ -296,7 +305,7 @@ public class MonitorService extends Service {
 
     private void sendHit(ArrayList<HitEvent> listSendHit) {
         // This code just for tester debugging hits data only
-//        Utility.writeFile(listSendHit);
+        Utility.writeFile(listSendHit);
 
         // If not have network
         if (!Utility.hasNetworkConnection(this)) {
@@ -337,6 +346,8 @@ public class MonitorService extends Service {
             return pageStack.get(0);
         }
     }
+
+//    private
 
     private boolean isInBackground() {
         return pageVisible.isEmpty();

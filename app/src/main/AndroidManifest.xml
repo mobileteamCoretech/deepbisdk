@@ -31,6 +31,7 @@
         <activity android:name=".ActivitySample1"></activity>
         <activity android:name=".ActivitySample2"></activity>
         <activity android:name=".ActivitySample3"></activity>
+        <activity android:name=".CustomEventActivity"></activity>
 
     </application>
 

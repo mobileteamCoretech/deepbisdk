@@ -35,29 +35,10 @@ public class DeviceInfoDataCollector extends BaseDataCollector {
         // ID
         user.setId(DeepBiManager.DEVICE_ID);
 
-        // Time
-        event.setTime(TimeUtils.getTimeISO8601());
-
-        // Session
-        HitEvent.Session session = new HitEvent.Session();
-        session.setId(DeepBiManager.SESSION_ID);
-        event.setSession(session);
-
-        // Sdk
-        HitEvent.Sdk sdk = new HitEvent.Sdk();
-        sdk.setVersion(BuildConfig.VERSION_NAME);
-        event.setSdk(sdk);
-
         // App Info
         HitEvent.App app = new HitEvent.App();
         app.setName(Utility.getApplicationName(DeepBiManager.getAppContext()));
         event.setApp(app);
-
-        // UTC offset
-        TimeZone tz = TimeZone.getDefault();
-        Date now = new Date();
-        int offsetFromUtc = tz.getOffset(now.getTime()) / 1000 / 60;
-        event.setUtcoffset(offsetFromUtc);
 
         // Attention
         HitEvent.Attention attention = new HitEvent.Attention();
